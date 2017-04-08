@@ -299,7 +299,6 @@ HexagonGrid.prototype.clickEvent = function(e) {
 
 HexagonGrid.prototype.updateExport = function() {
     var data = this.serialize();
-    console.log(data);
     data = JSON.stringify(data);
     data = data.replace('"p":', '\n"p":\n');
     data = data.replace(',"s":', '\n,"s":\n');
