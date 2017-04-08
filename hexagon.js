@@ -1,13 +1,8 @@
 // Hex math defined here: http://blog.ruslans.com/2011/02/hexagonal-grid-math.html
 
-function HexagonGrid(canvasId, radius) {
-    this.radius = radius;
-
-    this.height = Math.sqrt(3) * radius;
-    this.width = 2 * radius;
-    this.side = (3 / 2) * radius;
-
+function HexagonGrid(canvasId, exportId) {
     this.canvas = document.getElementById(canvasId);
+    this.export = document.getElementById(exportId);
     this.context = this.canvas.getContext('2d');
 
     this.canvasOriginX = 0;
@@ -24,25 +19,43 @@ function HexagonGrid(canvasId, radius) {
     document.getElementsByTagName('body')[0].addEventListener('keydown', this.clickEvent.bind(this), false);
 }
 
-HexagonGrid.prototype.drawHexGrid = function(rows, cols, originX, originY) {
+HexagonGrid.prototype.setRadius = function(radius) {
+    this.height = Math.sqrt(3) * radius;
+    this.width = 2 * radius;
+    this.side = (3 / 2) * radius;
+};
+
+HexagonGrid.prototype.setSize = function(rows, cols) {
+    var w = cols * this.width * 3 / 4 + 1 / 4 * this.width;
+    var h = rows * this.height + this.height / 2;
+    this.canvas.setAttribute('width', '' + w);
+    this.canvas.setAttribute('height', '' + h);
     this.rows = rows;
     this.cols = cols;
 
-    this.canvasOriginX = originX;
-    this.canvasOriginY = originY;
-
     for(var col = 0; col < this.cols; col++) {
-        this.tiles[col] = [];
-        this.soldiers[col] = [];
-        this.players[col] = [];
+        if(this.tiles[col] == null) {
+            this.tiles[col] = [];
+        }
+        if(this.soldiers[col] == null) {
+            this.soldiers[col] = [];
+        }
+        if(this.players[col] == null) {
+            this.players[col] = [];
+        }
+
         for(var row = 0; row < this.rows; row++) {
-            this.tiles[col][row] = 0;
-            this.soldiers[col][row] = -1;
-            this.players[col][row] = -1;
+            if(this.tiles[col][row] == null) {
+                this.tiles[col][row] = 0;
+            }
+            if(this.soldiers[col][row] == null) {
+                this.soldiers[col][row] = -1;
+            }
+            if(this.players[col][row] == null) {
+                this.players[col][row] = -1;
+            }
         }
     }
-
-    this.draw();
 };
 
 var COLORS = ['#03a9f4', '#FFF176', '#9ccc65', '#e0e0e0'];
@@ -66,7 +79,7 @@ HexagonGrid.prototype.draw = function() {
 
             var text = null;
             var textColor = null;
-            if(this.tiles[col][row] !== -1) {
+            if(this.tiles[col][row] !== 0) {
                 text = this.soldiers[col][row];
                 textColor = PLAYERS[this.players[col][row]];
             }
@@ -75,6 +88,8 @@ HexagonGrid.prototype.draw = function() {
         }
         offsetColumn = !offsetColumn;
     }
+
+    this.updateExport();
 };
 
 HexagonGrid.prototype.drawHexAtColRow = function(column, row, color) {
@@ -103,9 +118,11 @@ HexagonGrid.prototype.drawHex = function(x0, y0, fillColor, text, textColor) {
     this.context.stroke();
 
     if(text) {
-        this.context.font = "32px";
+        var margin = this.height * 0.13;
+        var size = Math.round(this.height);
+        this.context.font = 'bold ' + size + 'px Arial';
         this.context.fillStyle = textColor;
-        this.context.fillText(text, x0 + (this.width / 2) - (this.width / 4), y0 + (this.height - 5));
+        this.context.fillText(text, x0 + this.width / 4, y0 + this.height - margin);
     }
 };
 
@@ -236,7 +253,6 @@ HexagonGrid.prototype.setSoldiers = function(col, row, num) {
 };
 
 HexagonGrid.prototype.clickEvent = function(e) {
-    console.log(e);
     var mouseX;
     var mouseY;
 
@@ -257,7 +273,6 @@ HexagonGrid.prototype.clickEvent = function(e) {
     var localY = mouseY - this.canvasOriginY;
 
     var tile = this.getSelectedTile(localX, localY);
-    console.log('clicked ' + tile.column + 'x' + tile.row);
     if(tile.column >= 0 && tile.row >= 0 && tile.column < this.cols && tile.row < this.rows) {
         if(e.type === 'mousedown' && e.which === 1) {
             this.incTile(tile.column, tile.row);
@@ -278,6 +293,52 @@ HexagonGrid.prototype.clickEvent = function(e) {
                 return false;
             }
         }
-        return true;
     }
+    return true;
+};
+
+HexagonGrid.prototype.updateExport = function() {
+    var data = this.serialize();
+    console.log(data);
+    data = JSON.stringify(data);
+    data = data.replace('"p":', '\n"p":\n');
+    data = data.replace(',"s":', '\n,"s":\n');
+    data = data.replace(',"t":', '\n,"t":\n');
+    data = data.replace('}', '\n}');
+    this.export.value = data;
+    localStorage.setItem('map', data);
+};
+
+HexagonGrid.prototype.serialize = function() {
+    var p = [];
+    var t = [];
+    var s = [];
+    for(var row = 0; row < this.rows; row++) {
+        p[row] = [];
+        s[row] = [];
+        t[row] = [];
+        for(var col = 0; col < this.cols; ccol++) {
+            p[row][col] = this.players[col][row];
+            s[row][col] = this.soldiers[col][row];
+            t[row][col] = this.tiles[col][row];
+        }
+    }
+    return { p: p, t: t, s: s };
+};
+
+HexagonGrid.prototype.deserialize = function(data) {
+    this.setSize(data.t.length, data.t[0].length);
+
+    for(var col = 0; col < this.cols; col++) {
+        this.players[col] = [];
+        this.soldiers[col] = [];
+        this.tiles[col] = [];
+        for(var row = 0; row < this.rows; row++) {
+            this.players[col][row] = data.p[row][col];
+            this.soldiers[col][row] = data.s[row][col];
+            this.tiles[col][row] = data.t[row][col];
+        }
+    }
+
+    this.draw();
 };

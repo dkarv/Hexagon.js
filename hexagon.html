@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <head>
-    <title>Hex</title>
+    <title>HexBattle Editor</title>
     <script src="hexagon.js"></script>
     <style>
         #HexCanvas {
@@ -10,22 +10,64 @@
 </head>
 <body>
 <div>
-    <input type="number" id="width" value="10"/>
-    <input type="number" id="height" value="7"/>
-    <input type="button" id="update" value="Update"/>
+    <label>
+        width:
+        <input type="number" id="width" value="10" min="0" max="50"/>
+    </label>
+    <label>
+        height:
+        <input type="number" id="height" value="7" min="0" max="50"/>
+    </label>
+    <label>
+        zoom:
+        <input type="number" id="radius" value="50" step="5" min="10" max="100">
+    </label>
     <br/>
     <br/>
     <canvas id="HexCanvas" width="1000" height="700" tabindex="1"></canvas>
+
+    <br/>
+    <br/>
+    <input type="button" value="Import" id="import">
+    <label>
+        Export:
+        <br/>
+        <textarea id="export" cols=100" rows="20"></textarea>
+    </label>
 </div>
 <script>
+    var grid = new HexagonGrid("HexCanvas", "export");
     function update() {
-        var hexagonGrid = new HexagonGrid("HexCanvas", 50);
+        var radius = parseInt(document.getElementById('radius').value);
+        grid.setRadius(radius);
+
         var width = parseInt(document.getElementById('width').value);
         var height = parseInt(document.getElementById('height').value);
-        hexagonGrid.drawHexGrid(height, width, 0, 0, true);
+        grid.setSize(height, width);
+
+        grid.draw();
     }
-    update();
-    document.getElementById('update').addEventListener('click', update);
+    document.getElementById('width').addEventListener('input', update);
+    document.getElementById('height').addEventListener('input', update);
+    document.getElementById('radius').addEventListener('input', update);
+
+    document.getElementById('import').addEventListener('click', function() {
+        var data = document.getElementById('export').value;
+        data = JSON.parse(data);
+        grid.deserialize(data);
+    });
+
+
+    var data = localStorage.getItem('map');
+    if(data) {
+        var radius = parseInt(document.getElementById('radius').value);
+        grid.setRadius(radius);
+
+        data = JSON.parse(data);
+        grid.deserialize(data);
+    } else {
+        update();
+    }
 </script>
 
 </body>
