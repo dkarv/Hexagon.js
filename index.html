@@ -53,7 +53,6 @@
 
     document.getElementById('import').addEventListener('click', function() {
         var data = document.getElementById('export').value;
-        data = JSON.parse(data);
         grid.deserialize(data);
     });
 
@@ -63,7 +62,6 @@
         var radius = parseInt(document.getElementById('radius').value);
         grid.setRadius(radius);
 
-        data = JSON.parse(data);
         grid.deserialize(data);
     } else {
         update();

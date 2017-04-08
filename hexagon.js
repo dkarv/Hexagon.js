@@ -300,10 +300,14 @@ HexagonGrid.prototype.clickEvent = function(e) {
 HexagonGrid.prototype.updateExport = function() {
     var data = this.serialize();
     data = JSON.stringify(data);
-    data = data.replace('"p":', '\n"p":\n');
+    // dirty translation to java array so I can directly copy them
+    data = data.replace('"p":', '"p":\n');
     data = data.replace(',"s":', '\n,"s":\n');
     data = data.replace(',"t":', '\n,"t":\n');
-    data = data.replace('}', '\n}');
+    data = data.replace('{', '');
+    data = data.replace('}', '');
+    data = data.replace(new RegExp('\\[', 'g'), '{');
+    data = data.replace(new RegExp('\\]', 'g'), '}');
     this.export.value = data;
     localStorage.setItem('map', data);
 };
@@ -326,6 +330,10 @@ HexagonGrid.prototype.serialize = function() {
 };
 
 HexagonGrid.prototype.deserialize = function(data) {
+    data = data.replace(new RegExp('\\{', 'g'), '[');
+    data = data.replace(new RegExp('\\}', 'g'), ']');
+    data = '{' + data + '}';
+    data = JSON.parse(data);
     this.setSize(data.t.length, data.t[0].length);
 
     for(var col = 0; col < this.cols; col++) {
